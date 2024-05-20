@@ -7,22 +7,27 @@ use strict;
 use warnings 'all';
 use feature 'say';
 
+my $pi = atan2(1,1) * 4;
 
 #my $csv = get("https://data.sfgov.org/api/views/rqzj-sfat/rows.csv");
 #die "Can't GET https://data.sfgov.org/api/views/rqzj-sfat/rows.csv" if (! defined $csv);
 
 
-my @menu_choices = qw/ 1 2 3 4 5 /;
+my @menu_choices = qw/ 1 2 3 4 5 6 7 8 9/;
 
 
 my $ditance = 3;
 
 Loop: print "\nAwesome Food Finder in short $ditance miles away\n\n\n";
-print "1 ) - File Statistics \n";
-print "2 ) - Sandwitch\n";
-print "3 ) - Tacos\n";
-print "4 ) - Giros\n";
-print "5 ) Set distance from current location:\n";
+print "1 ) - Set distance from current location:\n";
+print "2 ) - File Statistics \n";
+print "3 ) - Sandwitch\n";
+print "4 ) - Tacos\n";
+print "5 ) - Soup\n";
+print "6 ) - Kebab\n";
+print "7 ) - Ice Cream\n";
+print "8 ) - Burger\n";
+print "9 ) - Salad\n";
 print "========================> ";
 print "What is your input? ";
 
@@ -44,15 +49,20 @@ while(1) {
 say qq{Doing "$choice" ...};
 
 my %functions_ref = (
-    1 => sub { print("Apple\n"); },
-    2 => sub { my_other_code(); },
-    3 => sub { my_still_other_code();  },
-    4 => sub { my_other_code(); },
-    5 => sub { print("Current max distance is  $ditance miles away...\n Enter new max distance:");
+    1 => sub { print("Current max distance is $ditance miles away...\n Enter new max distance:");
                $ditance = <STDIN>;
                chomp $ditance;
                print("\n setting maximum miles away to $ditance miles ...");
+               print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
     },
+    2 => sub { print("Apple\n"); },
+    3 => sub { find_food("sandwitch", $ditance); },
+    4 => sub { find_food("taco", $ditance); },
+    5 => sub { find_food("soup", $ditance); },
+    6 => sub { find_food("kebab", $ditance); },
+    7 => sub { find_food("icecream", $ditance); },
+    8 => sub { find_food("burger", $ditance); },
+    9 => sub { find_food("salad", $ditance); },
     );
 
 if ( exists $functions_ref{$choice} ) {
@@ -61,4 +71,85 @@ if ( exists $functions_ref{$choice} ) {
 else { # Default case
     print STDERR "$0: unknown option '$choice'\n";
 }
-goto Loop
+goto Loop;
+
+sub find_food {
+    my ($search_subsring, $miles) = @_;
+    print("\n searching food track $miles miles away serving $search_subsring ...");
+    print("\n ... ...");
+    print("\n ... ... ...");
+}
+
+
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::                                                                         :::
+#:::  This routine calculates the distance between two points (given the     :::
+#:::  latitude/longitude of those points). It is being used to calculate     :::
+#:::  the distance between two locations using GeoDataSource(TM) products    :::
+#:::                                                                         :::
+#:::  Definitions:                                                           :::
+#:::    South latitudes are negative, east longitudes are positive           :::
+#:::                                                                         :::
+#:::  Passed to function:                                                    :::
+#:::    lat1, lon1 = Latitude and Longitude of point 1 (in decimal degrees)  :::
+#:::    lat2, lon2 = Latitude and Longitude of point 2 (in decimal degrees)  :::
+#:::    unit = the unit you desire for results                               :::
+#:::           where: 'M' is statute miles (default)                         :::
+#:::                  'K' is kilometers                                      :::
+#:::                  'N' is nautical miles                                  :::
+#:::                                                                         :::
+#:::  Worldwide cities and other features databases with latitude longitude  :::
+#:::  are available at https://www.geodatasource.com	                     :::
+#:::                                                                         :::
+#:::  For enquiries, please contact sales@geodatasource.com                  :::
+#:::                                                                         :::
+#:::  Official Web site: https://www.geodatasource.com                       :::
+#:::                                                                         :::
+#:::            GeoDataSource.com (C) All Rights Reserved 2022               :::
+#:::                                                                         :::
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+sub distance {
+  my ($lat1, $lon1, $lat2, $lon2, $unit) = @_;
+  if (($lat1 == $lat2) && ($lon1 == $lon2)) {
+    return 0;
+  }
+  else {
+    my $theta = $lon1 - $lon2;
+    my $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+    $dist  = acos($dist);
+    $dist = rad2deg($dist);
+    $dist = $dist * 60 * 1.1515;
+    if ($unit eq "K") {
+      $dist = $dist * 1.609344;
+    } elsif ($unit eq "N") {
+      $dist = $dist * 0.8684;
+    }
+    return ($dist);
+  }
+}
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function get the arccos function using arctan function   :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub acos {
+  my ($rad) = @_;
+  my $ret = atan2(sqrt(1 - $rad**2), $rad);
+  return $ret;
+}
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function converts decimal degrees to radians             :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub deg2rad {
+  my ($deg) = @_;
+  return ($deg * $pi / 180);
+}
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function converts radians to decimal degrees             :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub rad2deg {
+  my ($rad) = @_;
+  return ($rad * 180 / $pi);
+}
