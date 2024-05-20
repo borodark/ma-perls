@@ -1,0 +1,64 @@
+#!/usr/bin/env perl
+
+use LWP::Simple;
+use 5.016;      # implies "use strict;"
+use autodie;
+use strict;
+use warnings 'all';
+use feature 'say';
+
+
+#my $csv = get("https://data.sfgov.org/api/views/rqzj-sfat/rows.csv");
+#die "Can't GET https://data.sfgov.org/api/views/rqzj-sfat/rows.csv" if (! defined $csv);
+
+
+my @menu_choices = qw/ 1 2 3 4 5 /;
+
+
+my $ditance = 3;
+
+Loop: print "\nAwesome Food Finder in short $ditance miles away\n\n\n";
+print "1 ) - File Statistics \n";
+print "2 ) - Sandwitch\n";
+print "3 ) - Tacos\n";
+print "4 ) - Giros\n";
+print "5 ) Set distance from current location:\n";
+print "========================> ";
+print "What is your input? ";
+
+my $choice = <STDIN>;
+
+chomp $choice;
+
+while(1) {
+    if (grep { $_ eq $choice } @menu_choices) {
+        last;
+    }
+    else {
+        print "Invalid choice $choice. Enter input again\n";
+        $choice= <STDIN>;
+        chomp $choice;
+    }
+}
+
+say qq{Doing "$choice" ...};
+
+my %functions_ref = (
+    1 => sub { print("Apple\n"); },
+    2 => sub { my_other_code(); },
+    3 => sub { my_still_other_code();  },
+    4 => sub { my_other_code(); },
+    5 => sub { print("Current max distance is  $ditance miles away...\n Enter new max distance:");
+               $ditance = <STDIN>;
+               chomp $ditance;
+               print("\n setting maximum miles away to $ditance miles ...");
+    },
+    );
+
+if ( exists $functions_ref{$choice} ) {
+    $functions_ref{$choice}->();
+}
+else { # Default case
+    print STDERR "$0: unknown option '$choice'\n";
+}
+goto Loop
