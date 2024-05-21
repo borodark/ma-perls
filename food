@@ -1,16 +1,18 @@
 #!/usr/bin/env perl
 
 use LWP::Simple;
+use Text::CSV qw( csv ); # functional
 use 5.016;      # implies "use strict;"
 use autodie;
 use strict;
 use warnings 'all';
 use feature 'say';
 
-my $pi = atan2(1,1) * 4;
 
-#my $csv = get("https://data.sfgov.org/api/views/rqzj-sfat/rows.csv");
-#die "Can't GET https://data.sfgov.org/api/views/rqzj-sfat/rows.csv" if (! defined $csv);
+my $pi = atan2(1,1) * 4;
+ 
+my $csv = get("http://data.sfgov.org/resource/rqzj-sfat.csv");
+die "Can't GET http://data.sfgov.org/resource/rqzj-sfat.csv" if (! defined $csv);
 
 
 my @menu_choices = qw/ 1 2 3 4 5 6 7 8 9/;
@@ -75,9 +77,11 @@ goto Loop;
 
 sub find_food {
     my ($search_subsring, $miles) = @_;
+    csv(in => $csv, out => \my $by_food, filter => { FoodItems => sub { m/$search_subsring/ }});
     print("\n searching food track $miles miles away serving $search_subsring ...");
     print("\n ... ...");
     print("\n ... ... ...");
+    print("\n $by_food")
 }
 
 
