@@ -4,7 +4,6 @@ use GIS::Distance;
 use Data::Dumper;
 use LWP::Simple;
 use Text::CSV qw( csv ); # functional
-use List::Util qw( any );
 use 5.016;      # implies "use strict;"
 use autodie;
 use strict;
@@ -101,19 +100,15 @@ sub find_food {
     my ($search_subsring, $miles) = @_;
     print("\n searching food track $miles miles away serving $search_subsring ...");
     print("\n ... ...");
-    #my $far = distance($my_lat, $my_lon, 29.46786, -98.53506, "M");
-    #print("\n ... $far ... ...");
-    # Returns a Class::Measure object.
-    #my $distance = $gis->distance($my_lat, $my_lon, 33.46786, -120.53506 )->miles();
-    #print $distance;
-    #
+    # search non expired
     my @found_r = grep {
         (index($_->{fooditems}, $search_subsring) != -1
          && $_->{ status } ne "EXPIRED"
          && ($gis->distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude })->miles() < $dist)
         )
     } @$all_records;
-    # print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
+
+    # print found ones
     map { print Dumper( "Only ",
                         $gis->distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude })->miles(),
                         " Miles away is the \n" ,
