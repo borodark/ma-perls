@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+use GIS::Distance;
 use Data::Dumper;
 use LWP::Simple;
 use Text::CSV qw( csv ); # functional
@@ -13,6 +14,11 @@ use feature 'say';
 # Do not print $VAR1=
 $Data::Dumper::Terse = 1;
 
+
+
+# Use the GIS::Distance::Haversine formula by default.
+my $gis = GIS::Distance->new();
+
 my $csv = get("http://data.sfgov.org/resource/rqzj-sfat.csv");
 die "Can't GET http://data.sfgov.org/resource/rqzj-sfat.csv" if (! defined $csv);
 
@@ -25,11 +31,7 @@ my $all_records = csv (in => "MFFP.csv" , headers => "lc") or
     die Text::CSV->error_diag;
 
 my @menu_choices = qw/ 1 2 3 4 5 6 7 8 9 q/;
-
-
-# used in subs for geo
-my $pi = atan2(1,1) * 4;
-
+ 
 # 3 miles
 my $dist = 3;
 
@@ -101,93 +103,22 @@ sub find_food {
     print("\n ... ...");
     #my $far = distance($my_lat, $my_lon, 29.46786, -98.53506, "M");
     #print("\n ... $far ... ...");
+    # Returns a Class::Measure object.
+    #my $distance = $gis->distance($my_lat, $my_lon, 33.46786, -120.53506 )->miles();
+    #print $distance;
+    #
     my @found_r = grep {
         (index($_->{fooditems}, $search_subsring) != -1
          && $_->{ status } ne "EXPIRED"
-         && (distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude }, "M") < $dist)
+         && ($gis->distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude })->miles() < $dist)
         )
     } @$all_records;
     # print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
     map { print Dumper( "Only ",
-                        distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude }, "M"),
+                        $gis->distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude })->miles(),
                         " Miles away is the \n" ,
                         $_->{ locationdescription },
                         $_->{ status } ,
                         $_->{fooditems} ),
               "\n---------------------------\n"; } @found_r;
 }
-
-
-#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#:::                                                                         :::
-#:::  This routine calculates the distance between two points (given the     :::
-#:::  latitude/longitude of those points). It is being used to calculate     :::
-#:::  the distance between two locations using GeoDataSource(TM) products    :::
-#:::                                                                         :::
-#:::  Definitions:                                                           :::
-#:::    South latitudes are negative, east longitudes are positive           :::
-#:::                                                                         :::
-#:::  Passed to function:                                                    :::
-#:::    lat1, lon1 = Latitude and Longitude of point 1 (in decimal degrees)  :::
-#:::    lat2, lon2 = Latitude and Longitude of point 2 (in decimal degrees)  :::
-#:::    unit = the unit you desire for results                               :::
-#:::           where: 'M' is statute miles (default)                         :::
-#:::                  'K' is kilometers                                      :::
-#:::                  'N' is nautical miles                                  :::
-#:::                                                                         :::
-#:::  Worldwide cities and other features databases with latitude longitude  :::
-#:::  are available at https://www.geodatasource.com	                     :::
-#:::                                                                         :::
-#:::  For enquiries, please contact sales@geodatasource.com                  :::
-#:::                                                                         :::
-#:::  Official Web site: https://www.geodatasource.com                       :::
-#:::                                                                         :::
-#:::            GeoDataSource.com (C) All Rights Reserved 2022               :::
-#:::                                                                         :::
-#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-sub distance {
-  my ($lat1, $lon1, $lat2, $lon2, $unit) = @_;
-  if (($lat1 == $lat2) && ($lon1 == $lon2)) {
-    return 0;
-  }
-  else {
-    my $theta = $lon1 - $lon2;
-    my $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
-    $dist  = acos($dist);
-    $dist = rad2deg($dist);
-    $dist = $dist * 60 * 1.1515;
-    if ($unit eq "K") {
-      $dist = $dist * 1.609344;
-    } elsif ($unit eq "N") {
-      $dist = $dist * 0.8684;
-    }
-    return ($dist);
-  }
-}
-
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#:::  This function get the arccos function using arctan function   :::
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-sub acos {
-  my ($rad) = @_;
-  my $ret = atan2(sqrt(1 - $rad**2), $rad);
-  return $ret;
-}
-
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#:::  This function converts decimal degrees to radians             :::
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-sub deg2rad {
-  my ($deg) = @_;
-  return ($deg * $pi / 180);
-}
-
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#:::  This function converts radians to decimal degrees             :::
-#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-sub rad2deg {
-  my ($rad) = @_;
-  return ($rad * 180 / $pi);
-}
-

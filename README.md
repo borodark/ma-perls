@@ -23,8 +23,7 @@ q ) - Exit
 ```
 
 The option available to set distance in miles from the Union Square in SF.
-The distance is measured by functions borrowed from GeoDataSource.com (C)
-
+The distance is measured by a function from `GIS::Distance`
 ## Potential improvments
 
 - Better formated output
