@@ -1,28 +1,45 @@
 #!/usr/bin/env perl
 
+use Data::Dumper;
 use LWP::Simple;
 use Text::CSV qw( csv ); # functional
+use List::Util qw( any );
 use 5.016;      # implies "use strict;"
 use autodie;
 use strict;
 use warnings 'all';
 use feature 'say';
 
+# Do not print $VAR1=
+$Data::Dumper::Terse = 1;
 
-my $pi = atan2(1,1) * 4;
- 
 my $csv = get("http://data.sfgov.org/resource/rqzj-sfat.csv");
 die "Can't GET http://data.sfgov.org/resource/rqzj-sfat.csv" if (! defined $csv);
 
+# save into file 
+open (FH, ">", "MFFP.csv") || die "open file error";
+print FH $csv;
+close FH;
 
-my @menu_choices = qw/ 1 2 3 4 5 6 7 8 9/;
+my $all_records = csv (in => "MFFP.csv" , headers => "lc") or
+    die Text::CSV->error_diag;
+
+my @menu_choices = qw/ 1 2 3 4 5 6 7 8 9 q/;
 
 
-my $ditance = 3;
+# used in subs for geo
+my $pi = atan2(1,1) * 4;
 
-Loop: print "\nAwesome Food Finder in short $ditance miles away\n\n\n";
+# 3 miles
+my $dist = 3;
+
+# from union sqare
+my $my_lat = 37.7874905;
+my $my_lon = -122.4078544;
+
+Loop: print "\nAwesome Food Finder in short $dist miles away\n\n\n";
 print "1 ) - Set distance from current location:\n";
-print "2 ) - File Statistics \n";
+print "2 ) - Sandwich \n";
 print "3 ) - Sandwitch\n";
 print "4 ) - Tacos\n";
 print "5 ) - Soup\n";
@@ -30,6 +47,7 @@ print "6 ) - Kebab\n";
 print "7 ) - Ice Cream\n";
 print "8 ) - Burger\n";
 print "9 ) - Salad\n";
+print "q ) - Exit\n";
 print "========================> ";
 print "What is your input? ";
 
@@ -51,20 +69,21 @@ while(1) {
 say qq{Doing "$choice" ...};
 
 my %functions_ref = (
-    1 => sub { print("Current max distance is $ditance miles away...\n Enter new max distance:");
-               $ditance = <STDIN>;
-               chomp $ditance;
-               print("\n setting maximum miles away to $ditance miles ...");
-               print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
+    1 => sub { print("Current max distance is $dist miles away...\n Enter new max distance:");
+               $dist = <STDIN>;
+               chomp $dist;
+               print("\n setting maximum miles away to $dist miles ...");
+               # 
     },
-    2 => sub { print("Apple\n"); },
-    3 => sub { find_food("sandwitch", $ditance); },
-    4 => sub { find_food("taco", $ditance); },
-    5 => sub { find_food("soup", $ditance); },
-    6 => sub { find_food("kebab", $ditance); },
-    7 => sub { find_food("icecream", $ditance); },
-    8 => sub { find_food("burger", $ditance); },
-    9 => sub { find_food("salad", $ditance); },
+    2 => sub { find_food("sandwich", $dist); },
+    3 => sub { find_food("sandwitch", $dist); },
+    4 => sub { find_food("taco", $dist); },
+    5 => sub { find_food("soup", $dist); },
+    6 => sub { find_food("kebab", $dist); },
+    7 => sub { find_food("icecream", $dist); },
+    8 => sub { find_food("burger", $dist); },
+    9 => sub { find_food("salad", $dist); },
+    'q' => sub { die; },
     );
 
 if ( exists $functions_ref{$choice} ) {
@@ -73,15 +92,29 @@ if ( exists $functions_ref{$choice} ) {
 else { # Default case
     print STDERR "$0: unknown option '$choice'\n";
 }
+
 goto Loop;
 
 sub find_food {
     my ($search_subsring, $miles) = @_;
-    csv(in => $csv, out => \my $by_food, filter => { FoodItems => sub { m/$search_subsring/ }});
     print("\n searching food track $miles miles away serving $search_subsring ...");
     print("\n ... ...");
-    print("\n ... ... ...");
-    print("\n $by_food")
+    #my $far = distance($my_lat, $my_lon, 29.46786, -98.53506, "M");
+    #print("\n ... $far ... ...");
+    my @found_r = grep {
+        (index($_->{fooditems}, $search_subsring) != -1
+         && $_->{ status } ne "EXPIRED"
+         && (distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude }, "M") < $dist)
+        )
+    } @$all_records;
+    # print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
+    map { print Dumper( "Only ",
+                        distance($my_lat, $my_lon, $_->{ latitude }, $_->{ longitude }, "M"),
+                        " Miles away is the \n" ,
+                        $_->{ locationdescription },
+                        $_->{ status } ,
+                        $_->{fooditems} ),
+              "\n---------------------------\n"; } @found_r;
 }
 
 
@@ -157,3 +190,4 @@ sub rad2deg {
   my ($rad) = @_;
   return ($rad * 180 / $pi);
 }
+
